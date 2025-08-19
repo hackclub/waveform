@@ -1,4 +1,4 @@
-import song from "/slip.mp3";
+const song = '/public/slip.mp3'; 
 
 //@ts-ignore
 window.AudioContext = window.AudioContext || window.webkitAudioContext;

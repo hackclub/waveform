@@ -11,4 +11,4 @@ COPY . .
 
 EXPOSE 3000
 RUN bun run build
-CMD [ "serve", "-s", "dist" ]
+CMD [ "bun", "index.ts" ]
