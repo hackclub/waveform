@@ -9,6 +9,7 @@ RUN bun i -g serve
 
 COPY . .
 
-EXPOSE 3000
-RUN bun run build
-CMD [ "bun", "index.ts" ]
+FROM build AS release
+USER bun
+EXPOSE 3000/tcp
+ENTRYPOINT [ "bun", "run", "index.ts" ]
