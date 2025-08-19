@@ -7,6 +7,9 @@ Bun.serve({
     routes: {
         "/": index,
         "/tutorial": tutorial,
+        '/health': (req) => {
+            return new Response("OK");
+        },
         "/*": (req) => {
             const path = new URL(req.url).pathname;
             console.log("Fetching:", path);
