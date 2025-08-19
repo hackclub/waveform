@@ -9,7 +9,7 @@
   "private": true,
   "scripts": {
     "build": "tsc --build",
-    "serve": "tsc --build && bun index.ts"
+    "serve": "bun index.ts"
   },
   "type": "module",
   "dependencies": {
