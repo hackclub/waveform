@@ -1,0 +1,177 @@
+<!doctype html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>your first visualizer....md | Exported</title>
+  <link rel="stylesheet" href="src/tutorial.css">
+</head>
+
+<body class="markdown-body">
+  <object id="freqvisheader" data="freqvisheader.svg" type="image/svg+xml"></object>
+  <h1 data-heading="your first visualizer..." dir="auto">your first visualizer...</h1>
+  <h3 data-heading="at least... I presume that’s what you’re here for" dir="auto">at least... I presume that’s what
+    you’re here for</h3>
+  <p dir="auto">if you're like me, you're probably not a musical genius, nor an artistic one. but...you also want to
+    play around with music and art and build something swanky n' cool... like these things!</p>
+
+  <p dir="auto">
+    <span alt="1vissonance.png" src="/1vissonance.png" class="internal-embed media-embed image-embed is-loaded">
+      <img alt="1vissonance.png" src="/1vissonance.png">
+    </span>
+    <a data-tooltip-position="top" aria-label="https://tariqksoliman.github.io/Vissonance/" rel="noopener nofollow"
+      class="external-link" href="https://tariqksoliman.github.io/Vissonance/" target="_blank">Vissonance</a>
+  </p>
+
+  <p dir="auto">
+    <span alt="2lines.png" src="/2lines.png" class="internal-embed media-embed image-embed is-loaded">
+      <img alt="2lines.png" src="/2lines.png">
+    </span>
+    <a data-tooltip-position="top" aria-label="https://labs.fluuu.id/lines/" rel="noopener nofollow"
+      class="external-link" href="https://labs.fluuu.id/lines/" target="_blank">Lines</a>
+  </p>
+
+  <p dir="auto">
+    <span alt="3waveform.png" src="/3waveform.png" class="internal-embed media-embed image-embed is-loaded">
+      <img alt="3waveform.png" src="/3waveform.png">
+    </span>
+    <a data-tooltip-position="top" aria-label="https://labs.fluuu.id/lines/" rel="noopener nofollow"
+      class="external-link" href="/" target="_blank">Waveform</a>
+  </p>
+
+  (is it bad if I plug my own visualizer?)
+  </p>
+
+  <p dir="auto">when I started looking into building my own visualizer, I realized that I was super confused on figuring
+    out how the webaudio API worked. the API is intended for special use audio applications, so piecing the API to
+    visualizations can be a little confusing at first. this tutorial is intended for you to get a quickstart on the API
+    and get a general idea of how it works. I won't be spoonfeeding you details on specifics on audio and
+    visualizations, that is for you to figure out and experiment on!</p>
+
+  <p dir="auto">the web audio API works in a graph formation. you have an input node (which can be your microphone, or a
+    playing piece of audio), some nodes in the middle (analyser/filters/gain/other effects), and the destination node.
+    this entire graph operates in the audio context.</p>
+
+  <span alt="4webaudiograph.png" src="/4webaudiograph.png" class="internal-embed media-embed image-embed is-loaded">
+    <img alt="4webaudiograph.png" src="/4webaudiograph.png">
+  </span>
+
+  <p dir="auto">it's easy to set up an audio context like so...</p>
+  <pre class="language-js"><code class="language-js is-loaded"><span class="token dom variable">window</span><span class="token punctuation">.</span><span class="token property-access"><span class="token maybe-class-name">AudioContext</span></span> <span class="token operator">=</span> <span class="token dom variable">window</span><span class="token punctuation">.</span><span class="token property-access"><span class="token maybe-class-name">AudioContext</span></span> <span class="token operator">||</span> <span class="token dom variable">window</span><span class="token punctuation">.</span><span class="token property-access">webkitAudioContext</span><span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> audioContext <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">AudioContext</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+  <p dir="auto">and using the audio context, we'll be able to create our input buffer our analyser. the audio analyser
+    will allow us to get data from the input channel or filter (depending on how you connect it)</p>
+  <pre class="language-js"><code class="language-js is-loaded"><span class="token keyword">const</span> source <span class="token operator">=</span> audioContext<span class="token punctuation">.</span><span class="token method function property-access">createBufferSource</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> analyser <span class="token operator">=</span> audioContext<span class="token punctuation">.</span><span class="token method function property-access">createAnalyser</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+analyser<span class="token punctuation">.</span><span class="token property-access">fftSize</span> <span class="token operator">=</span> <span class="token number">2048</span><span class="token punctuation">;</span>
+<span class="token keyword">const</span> data <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">Uint8Array</span><span class="token punctuation">(</span>analyser<span class="token punctuation">.</span><span class="token property-access">frequencyBinCount</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+  <p dir="auto">hmm...our source buffer is currently empty! we'll fetch an mp3 from somewhere, decode it into an audio
+    buffer, and throw it into our source.</p>
+  <pre class="language-js"><code class="language-js is-loaded"><span class="token keyword">const</span> <span class="token function-variable function">decodeAudio</span> <span class="token operator">=</span> <span class="token keyword">async</span> <span class="token punctuation">(</span><span class="token parameter"><span class="token literal-property property">url</span><span class="token operator">:</span> string</span><span class="token punctuation">)</span> <span class="token arrow operator">=&gt;</span> <span class="token punctuation">{</span>
+	<span class="token keyword">const</span> response <span class="token operator">=</span> <span class="token keyword control-flow">await</span> <span class="token function">fetch</span><span class="token punctuation">(</span>url<span class="token punctuation">)</span><span class="token punctuation">;</span>
+	<span class="token keyword">const</span> arrayBuffer <span class="token operator">=</span> <span class="token keyword control-flow">await</span> response<span class="token punctuation">.</span><span class="token method function property-access">arrayBuffer</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+	<span class="token keyword control-flow">return</span> <span class="token keyword control-flow">await</span> audioContext<span class="token punctuation">.</span><span class="token method function property-access">decodeAudioData</span><span class="token punctuation">(</span>arrayBuffer<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span>
+
+source<span class="token punctuation">.</span><span class="token property-access">buffer</span> <span class="token operator">=</span> <span class="token keyword control-flow">await</span> <span class="token function">decodeAudio</span><span class="token punctuation">(</span><span class="token string">'your_mp3_here.mp3'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+  <p dir="auto">let's connect it all together!</p>
+  <pre class="language-js"><code class="language-js is-loaded">source<span class="token punctuation">.</span><span class="token method function property-access">connect</span><span class="token punctuation">(</span>analyser<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+analyser<span class="token punctuation">.</span><span class="token method function property-access">connect</span><span class="token punctuation">(</span>audioContext<span class="token punctuation">.</span><span class="token property-access">destination</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+  <p dir="auto">source ---&gt; analyser ---&gt; destination</p>
+  <p dir="auto">one thing to note about the audio context is that it is <em>real time</em>. this means we'll get data
+    about our song live, rather than get the entirety of our song processed. one way to think about this is that the
+    input is like a microphone. a microphone won't be able to hear before or after a piece of audio, rather it'll only
+    capture what it's hearing right now. </p>
+  <p dir="auto">our analyser will give us the frequency of the song at the moment it's playing. this might feel
+    confusing (at least it was confusing for me) when trying to piece this to drawing art on a screen. but it's
+    suprisingly simple! for example, look at my html canvas <code>draw</code> function below:</p>
+  <pre class="language-js"><code class="language-js is-loaded"><span class="token keyword">function</span> <span class="token function">draw</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+	ctx<span class="token punctuation">.</span><span class="token method function property-access">clearRect</span><span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> canvas<span class="token punctuation">.</span><span class="token property-access">width</span><span class="token punctuation">,</span> canvas<span class="token punctuation">.</span><span class="token property-access">height</span><span class="token punctuation">)</span>
+	
+	<span class="token comment">// our analyser will put frequency info into our data aray</span>
+	analyser<span class="token punctuation">.</span><span class="token method function property-access">getByteFrequencyData</span><span class="token punctuation">(</span>data<span class="token punctuation">)</span>
+	
+	ctx<span class="token punctuation">.</span><span class="token property-access">strokeStyle</span> <span class="token operator">=</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">black</span><span class="token template-punctuation string">`</span></span>
+	ctx<span class="token punctuation">.</span><span class="token method function property-access">beginPath</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+	ctx<span class="token punctuation">.</span><span class="token method function property-access">moveTo</span><span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">,</span> canvas<span class="token punctuation">.</span><span class="token property-access">height</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+	
+	<span class="token keyword control-flow">for</span> <span class="token punctuation">(</span><span class="token keyword">let</span> i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> data<span class="token punctuation">.</span><span class="token property-access">length</span><span class="token punctuation">;</span> i<span class="token operator">++</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+		<span class="token comment">// data[i] is the amplitude height</span>
+		<span class="token comment">// we normalize it like below:</span>
+		<span class="token keyword">const</span> value <span class="token operator">=</span> data<span class="token punctuation">[</span>i<span class="token punctuation">]</span> <span class="token operator">/</span> <span class="token number">1024</span>
+		
+		<span class="token keyword">const</span> y <span class="token operator">=</span> canvas<span class="token punctuation">.</span><span class="token property-access">height</span> <span class="token operator">-</span> canvas<span class="token punctuation">.</span><span class="token property-access">height</span> <span class="token operator">*</span> value
+
+		ctx<span class="token punctuation">.</span><span class="token method function property-access">lineTo</span><span class="token punctuation">(</span>i<span class="token punctuation">,</span> y<span class="token punctuation">)</span><span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+	
+	ctx<span class="token punctuation">.</span><span class="token method function property-access">stroke</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+	
+	<span class="token function">requestAnimationFrame</span><span class="token punctuation">(</span>draw<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token comment">// we'll be able to start the source audio using this function!</span>
+<span class="token comment">// note that browsers will expect a click before starting an audio source. this is best paired with an onclick event.</span>
+source<span class="token punctuation">.</span><span class="token method function property-access">start</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+</code></pre>
+  <p dir="auto">a constantly running draw function + an analyser that gets frequency data of our currently playing song
+    will result in....</p>
+
+    <canvas id="visualizer" width="640" height="160"></canvas>
+    <button id="play">Play</button><br><br>
+
+  <p dir="auto">tada!!!!!!!</p>
+  <h3 data-heading="next steps" dir="auto">next steps</h3>
+  <ul>
+    <li dir="auto"><a rel="noopener nofollow" class="external-link"
+        href="http://joesul.li/van/beat-detection-using-web-audio/" target="_blank">Beat Detection using Web Audio</a>
+      is a pretty great article on how you
+      can put beat detection in your project. his use case is vastly different from ours, so you'll need to figure out
+      how to modify his algorithm to fit your project</li>
+    <li dir="auto">MDN has plenty of articles that'll show you the intricacies of the web audio API.
+      <ul>
+        <li dir="auto"><a rel="noopener nofollow" class="external-link"
+            href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Basic_concepts_behind_Web_Audio_API"
+            target="_blank">Basic concepts behind Web Audio API</a>
+          goes into detail on digital audio as a whole. it also might be a better teacher than me :pf:</li>
+        <li dir="auto"><a rel="noopener nofollow" class="external-link"
+            href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Using_Web_Audio_API"
+            target="_blank">Using Web Audio API</a></li>
+        <li dir="auto"><a rel="noopener nofollow" class="external-link"
+            href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Advanced_techniques"
+            target="_blank">Advanced techniques</a>
+          if you're looking for more advanced stuff</li>
+      </ul>
+    </li>
+    <li dir="auto">my own visualizer uses filters to help separate beats
+      <ul>
+        <li dir="auto">look for biquad filters! I used a lowpass and peaking filter to make beats more clear and
+          measurable</li>
+        <li dir="auto">look at time domains! this will give you the waveform on the...uh...time domain (it's a little
+          hard to explain, but it'll look like this)
+          <span alt="5timedomain.png" src="/5timedomain.png" class="internal-embed media-embed image-embed is-loaded">
+            <img alt="5timedomain.png" src="/5timedomain.png">
+          </span>
+          <br>
+          since it's the waveform over time, you could probably get the average energy of the wave. this might be useful
+          in detecting beats. <a data-tooltip-position="top" aria-label="https://en.wikipedia.org/wiki/Root_mean_square"
+            rel="noopener nofollow" class="external-link" href="https://en.wikipedia.org/wiki/Root_mean_square"
+            target="_blank">RMS</a> may also be helpful
+        </li>
+      </ul>
+    </li>
+    <li dir="auto">there are PLENTY of wonderful examples over at <a rel="noopener nofollow" class="external-link"
+        href="https://github.com/willianjusten/awesome-audio-visualization?tab=readme-ov-file" target="_blank">Awesome
+        Audio Viz</a></li>
+  </ul>
+  <script src="/src/tutorial.ts" type="module"></script>
+</body>
+
+</html>
