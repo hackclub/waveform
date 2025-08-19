@@ -10,5 +10,5 @@ RUN bun i -g serve
 COPY . .
 
 EXPOSE 3000
-CMD ["bun", "run", "build"]
-ENTRYPOINT [ "serve", "-s", "/dist" ]
+RUN bun run build
+CMD [ "serve", "-s", "dist" ]
