@@ -1,14 +1,12 @@
-FROM oven/bun:latest
+FROM oven/bun:1-slim
+
+RUN apt-get update && apt-get install -y git curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY package.json ./
+RUN git clone https://github.com/techpixel/waveform.git .
+RUN bun install --frozen-lockfile
 
-RUN bun install
-RUN apt-get update && apt-get install -y wget curl
+EXPOSE 3000
 
-COPY . .
-
-USER bun
-EXPOSE 3000/tcp
-ENTRYPOINT [ "bun", "run", "serve" ]
+CMD ["bun", "run", "serve"]
