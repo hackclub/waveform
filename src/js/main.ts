@@ -193,6 +193,11 @@ let source = audioContext.createBufferSource();
 
 async function setSource() {
     source = audioContext.createBufferSource();
+
+    if (playerState === 'playing') {
+        controlData.innerHTML = `loading...`;
+    }
+
     source.buffer = await decodeAudio(songs[songIndex].url);
     THRESHOLD = songs[songIndex].threshold;
     source.connect(lowpass);
