@@ -99,8 +99,6 @@ function stopSource() {
     }
 }
 
-loadSource();
-
 async function playSong() {
     await audioContext.resume();
     startSource();
@@ -222,6 +220,8 @@ prev.onclick = async () => {
     await nextSong(-1);
     updateText(`playing <i>${songs[songIndex].name}</i><br>by ${songs[songIndex].author}`, `pause?`);
 };
+
+await loadSource();
 
 const activate = async () => {
     if (!active) {
