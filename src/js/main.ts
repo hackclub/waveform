@@ -222,7 +222,11 @@ async function nextSong(increment: number) {
     songIndex = (songIndex + increment) % songs.length;
 
     if (playerState === 'playing') {
-        source.stop();
+        try {
+            source.stop();
+        } catch (error) {
+            // eh wtvr
+        }
         await setSource();
         source.start();
     }
