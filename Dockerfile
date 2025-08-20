@@ -4,7 +4,6 @@ RUN apt-get update && apt-get install -y git curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-RUN git clone https://github.com/techpixel/waveform.git .
 RUN bun install --frozen-lockfile
 
 EXPOSE 3000
