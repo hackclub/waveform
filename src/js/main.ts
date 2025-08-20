@@ -221,8 +221,6 @@ prev.onclick = async () => {
     updateText(`playing <i>${songs[songIndex].name}</i><br>by ${songs[songIndex].author}`, `pause?`);
 };
 
-await loadSource();
-
 const activate = async () => {
     if (!active) {
         updateText(`loading...`);
@@ -264,7 +262,7 @@ document.getElementById('submit')!.onclick = () => {
     debounce = true;
 
     const tagline = document.getElementById('tagline')!;
-    tagline.innerHTML = 'submission form unlocks<br>at 100 members';
+    tagline.innerHTML = 'submission form unlocks<br>at 100 members or aug 23rd';
 
     tagline.style.transition = 'none';
     tagline.style.color = 'red';
@@ -283,10 +281,12 @@ document.getElementById('submit')!.onclick = () => {
 const overlay = document.getElementById('overlay')!;
 document.getElementById('show-vis')!.onclick = async () => {
     overlay.style.visibility = 'hidden';
+    await loadSource();
     await activate();
 };
 
 document.getElementById('hide-vis')!.onclick = () => {
+    loadSource();
     overlay.style.visibility = 'hidden';
 };
 
