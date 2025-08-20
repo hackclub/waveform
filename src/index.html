@@ -23,13 +23,20 @@
         document.body.style.visibility = 'hidden';
     </script>
     <canvas id="waveform" width="640" height="260"></canvas>
+    <div id="overlay">
+        <div class="warning">
+            <p>⚠️ this site plays music & has rapid visuals</p>
+            <a id="show-vis" class="hoverable">show visuals</a>
+            <a id="hide-vis">hide visuals</a>
+        </div>
+    </div>
     <div class="menu">
-        <div class="menu-item break control-pane">
-            <a class="prev control">&lt;</a>
-            <div id="controller">
-                <a id="control-data">start visualizer<br>(music & rapid visuals)</a>
+        <div class="menu-item break" id="controller">
+            <a id="prev" class="control">&lt;</a>
+            <div id="info-hover-box">
+                <a id="info">start visualizer<br>(music & rapid visuals)</a>
             </div>
-            <a class="next control">&gt;</a>
+            <a id="next" class="control">&gt;</a>
         </div>
         <p class="menu-item break" id="tagline" style="border-top: 0;">build an audio visualizer<br>get a spotify sub</p>
         <a class="menu-item hoverable" id="tutorial" href="/tutorial"

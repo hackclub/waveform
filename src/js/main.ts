@@ -57,6 +57,222 @@ peaking.Q.value = 1;
 lowpass.connect(peaking);
 peaking.connect(analyser);
 
+// -- audio state manager
+let source = audioContext.createBufferSource();
+let sourceState = 'notstarted' as 'notstarted' | 'loading' | 'started' | 'stopped';
+let songIndex = 1;
+
+async function loadSource() {
+    source = audioContext.createBufferSource();
+
+    sourceState = 'loading';
+
+    source.buffer = await decodeAudio(songs[songIndex].url);
+    THRESHOLD = songs[songIndex].threshold;
+    source.connect(lowpass);
+    source.connect(audioContext.destination);
+    source.loop = true;
+
+    sourceState = 'notstarted';
+}
+
+function startSource() {
+    if (sourceState === 'notstarted') {
+        source.start();
+        sourceState = 'started';
+    }
+}
+
+function stopSource() {
+    if (sourceState === 'started') {
+        source.stop();
+        sourceState = 'stopped';
+    }
+}
+
+loadSource();
+
+async function playSong() {
+    await audioContext.resume();
+    startSource();
+}
+
+async function pauseSong() {
+    // stopSource();
+    await audioContext.suspend();
+}
+
+let lock = false;
+async function nextSong(increment: number) {
+    if (lock) return;
+    lock = true;
+
+    if (songIndex + increment < 0) increment = songs.length - 1;
+    songIndex = (songIndex + increment) % songs.length;
+
+    switch (sourceState) {
+        case 'started':
+            stopSource();
+        /* FALLTHROUGH */
+        case 'notstarted':
+        case 'stopped':
+        case 'loading':
+            await loadSource();
+            startSource();
+            break;
+    }
+
+    lock = false;
+}
+
+// --- controls ---
+const controller = document.getElementById('controller') as HTMLElement;
+const prev = document.getElementById('prev') as HTMLElement;
+const next = document.getElementById('next') as HTMLElement;
+
+const infoHover = document.getElementById('info-hover-box') as HTMLElement;
+const info = document.getElementById('info') as HTMLElement;
+let infoText = info.innerHTML;
+let infoTextHover = '';
+const refresh = () => { info.innerHTML = infoText; };
+const updateText = (text: string, hoverText = '') => {
+    infoText = text;
+    infoTextHover = hoverText;
+    refresh();
+};
+let active = false;
+
+let enterDebounce = false;
+infoHover.onmouseenter = () => {
+    if (enterDebounce) return;
+    enterDebounce = true;
+
+    if (infoTextHover) {
+        info.innerHTML = infoTextHover;
+    }
+
+    if (!active) {
+        info.classList.add('hover');
+    }
+
+    setTimeout(() => {
+        enterDebounce = false;
+    }, 100);
+};
+
+let leaveDebounce = false;
+infoHover.onmouseleave = () => {
+    if (leaveDebounce) return;
+    leaveDebounce = true;
+
+    info.innerHTML = infoText;
+
+    if (!active) {
+        info.classList.remove('hover');
+        info.style.color = `white`;
+    }
+
+    setTimeout(() => {
+        leaveDebounce = false;
+    }, 100);
+};
+
+// prev/next controls
+const hideControls = () => {
+    document.querySelectorAll('.control').forEach((element) => {
+        (element as HTMLElement).style.visibility = 'hidden';
+    });
+};
+
+const showControls = () => {
+    document.querySelectorAll('.control').forEach((element) => {
+        (element as HTMLElement).style.visibility = 'visible';
+    });
+};
+
+hideControls();
+
+// functionality
+
+next.onclick = async () => {
+    updateText(`loading...`);
+    await nextSong(1);
+    updateText(`playing <i>${songs[songIndex].name}</i><br>by ${songs[songIndex].author}`, `pause?`);
+};
+
+prev.onclick = async () => {
+    updateText(`loading...`);
+    await nextSong(-1);
+    updateText(`playing <i>${songs[songIndex].name}</i><br>by ${songs[songIndex].author}`, `pause?`);
+};
+
+const activate = async () => {
+    if (!active) {
+        updateText(`loading...`);
+
+        await playSong();
+        showControls();
+        active = true;
+
+        updateText(`playing <i>${songs[songIndex].name}</i><br>by ${songs[songIndex].author}`, `pause?`);
+    } else {
+        active = false;
+        info.style.color = 'white';
+        await pauseSong();
+        hideControls();
+        updateText(`resume visualizer<br>(music & rapid visuals)`);
+    }
+};
+info.onclick = activate;
+
+// -- color hover effect
+const applyHoverable = (element: HTMLElement) => {
+    element.onmouseover = () => {
+        element.classList.add('hover');
+    };
+    element.onmouseout = () => {
+        element.classList.remove('hover');
+        element.style.color = `white`;
+    };
+};
+
+document.querySelectorAll('.hoverable').forEach((element) => {
+    applyHoverable(element as HTMLElement);
+});
+
+// -- submit --
+let debounce = false;
+document.getElementById('submit')!.onclick = () => {
+    if (debounce) return;
+    debounce = true;
+
+    const tagline = document.getElementById('tagline')!;
+    tagline.innerHTML = 'submission form unlocks<br>at 100 members';
+
+    tagline.style.transition = 'none';
+    tagline.style.color = 'red';
+
+    setTimeout(() => {
+        tagline.style.transition = 'color 1s';
+        tagline.style.color = 'white';
+        setTimeout(() => {
+            tagline.innerHTML = 'build an audio visualizer<br>get a music subscription';
+        }, 2000);
+        debounce = false;
+    }, 100);
+}
+
+// -- show/hide visuals --
+const overlay = document.getElementById('overlay')!;
+document.getElementById('show-vis')!.onclick = async () => {
+    overlay.style.visibility = 'hidden';
+    await activate();
+};
+
+document.getElementById('hide-vis')!.onclick = () => {
+    overlay.style.visibility = 'hidden';
+};
+
 // -- canvas visualizer --
 const canvas = document.getElementById('waveform') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
@@ -80,13 +296,12 @@ const OUT_OF_BOUNDS_SCALE = 30;
 
 let MAenergyValues = [] as number[];
 
-const controlPane = document.querySelector('.control-pane') as HTMLElement;
-const controller = document.getElementById('controller') as HTMLElement;
-const controlData = document.getElementById('control-data') as HTMLElement;
-
-let songIndex = 1;
-let playerState = 'notplaying' as 'notplaying' | 'playing' | 'paused';
 let c = 0;
+
+window.onresize = () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+};
 
 function draw() {
     ctx.save();
@@ -149,11 +364,11 @@ function draw() {
 
         ctx.fillText("waveform", 0, 0);
 
-        if (playerState === 'playing') {
-            waveform.angle += 0.01;
-            waveform.scale += 0.01;
-            waveform.color += 0.05;
-        }
+        // if (playerState === 'playing') {
+        waveform.angle += 0.01;
+        waveform.scale += 0.01;
+        waveform.color += 0.05;
+        // }
 
         // remove waveform if it's reached a full loop
         if (waveform.scale > OUT_OF_BOUNDS_SCALE) {
@@ -171,11 +386,11 @@ function draw() {
         (element as HTMLElement).style.borderColor = `hsl(${c}, 70%, 70%)`;
     });
 
-    if (playerState === 'playing') {
-        controlPane.style.backgroundColor = `hsl(${c}, 70%, 70%)`;
-        controlData.style.color = 'black';
+    if (active) {
+        controller.style.backgroundColor = `hsl(${c}, 70%, 70%)`;
+        info.style.color = 'black';
     } else {
-        controlPane.style.backgroundColor = `black`;
+        controller.style.backgroundColor = `black`;
     }
 
     requestAnimationFrame(draw);
@@ -183,164 +398,7 @@ function draw() {
 
 draw();
 
-window.onresize = () => {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-};
-
-// -- controls
-let source = audioContext.createBufferSource();
-
-async function setSource() {
-    source = audioContext.createBufferSource();
-
-    if (playerState === 'playing') {
-        controlData.innerHTML = `loading...`;
-    }
-
-    source.buffer = await decodeAudio(songs[songIndex].url);
-    THRESHOLD = songs[songIndex].threshold;
-    source.connect(lowpass);
-    source.connect(audioContext.destination);
-    source.loop = true;
-}
-
-setSource();
-
-function playSong() {
-    audioContext.resume().then(async () => {
-        if (playerState === 'notplaying') {
-            source.start();
-        }
-        playerState = 'playing';
-    });
-    controlData.innerHTML = `playing <i>${songs[songIndex].name}</i><br>by ${songs[songIndex].author}`;
-}
-
-function pauseSong() {
-    playerState = 'paused';
-    audioContext.suspend();
-}
-
-async function nextSong(increment: number) {
-    if (songIndex + increment < 0) increment = songs.length - 1;
-    songIndex = (songIndex + increment) % songs.length;
-
-    if (playerState === 'playing') {
-        try {
-            source.stop();
-        } catch (error) {
-            // eh wtvr
-        }
-        await setSource();
-        source.start();
-    }
-    controlData.innerHTML = `playing <i>${songs[songIndex].name}</i><br>by ${songs[songIndex].author}`;
-}
-
-(document.querySelector('.next') as HTMLElement)!.onclick = () => {
-    nextSong(1);
-};
-
-(document.querySelector('.prev') as HTMLElement)!.onclick = () => {
-    nextSong(-1);
-};
-
-// -- interactivity
-
-const applyHoverable = (element: HTMLElement) => {
-    element.onmouseover = () => {
-        element.classList.add('hover');
-    };
-    element.onmouseout = () => {
-        element.classList.remove('hover');
-        element.style.color = `white`;
-    };
-};
-
-document.querySelectorAll('.hoverable').forEach((element) => {
-    applyHoverable(element as HTMLElement);
-});
-
-const hideControls = () => {
-    document.querySelectorAll('.control').forEach((element) => {
-        (element as HTMLElement).style.visibility = 'hidden';
-    });
-};
-
-const showControls = () => {
-    document.querySelectorAll('.control').forEach((element) => {
-        (element as HTMLElement).style.visibility = 'visible';
-    });
-};
-
-hideControls();
-
-let enterDebounce = false;
-let leaveDebounce = false;
-controller.onmouseenter = () => {
-    if (enterDebounce) return;
-    enterDebounce = true;
-
-    if (playerState === 'playing') {
-        controlData.innerHTML = `pause?`;
-    } else {
-        controlData.classList.add('hover');
-    }
-
-    setTimeout(() => {
-        enterDebounce = false;
-    }, 100);
-};
-
-controller.onmouseleave = () => {
-    if (leaveDebounce) return;
-    leaveDebounce = true;
-
-    if (playerState === 'playing') {
-        controlData.innerHTML = `playing <i>${songs[songIndex].name}</i><br>by ${songs[songIndex].author}`;
-    } else {
-        controlData.classList.remove('hover');
-        controlData.style.color = `white`;
-    }
-
-    setTimeout(() => {
-        leaveDebounce = false;
-    }, 100);
-};
-
-controller.onclick = () => {
-    if (playerState === 'notplaying' || playerState === 'paused') {
-        playSong();
-        showControls();
-    } else {
-        pauseSong();
-        hideControls();
-        controlData.innerHTML = `resume visualizer<br>(music & rapid visuals)`;
-    }
-};
-
-// -- submit --
-let debounce = false;
-document.getElementById('submit')!.onclick = () => {
-    if (debounce) return;
-    debounce = true;
-
-    const tagline = document.getElementById('tagline')!;
-    tagline.innerHTML = 'submission form unlocks<br>at 100 members';
-
-    tagline.style.transition = 'none';
-    tagline.style.color = 'red';
-
-    setTimeout(() => {
-        tagline.style.transition = 'color 1s';
-        tagline.style.color = 'white';
-        setTimeout(() => {
-            tagline.innerHTML = 'build an audio visualizer<br>get a music subscription';
-        }, 2000);
-        debounce = false;
-    }, 100);
-}
+// prevent FOUC
 
 window.onload = () => {
     document.body.style.visibility = 'visible';
