@@ -1,7 +1,3 @@
-const song2 = './public/song2.mp3';
-const atw = './public/world.mp3';
-const slip = './public/slip.mp3';
-
 // -- audio processing --
 
 //@ts-ignore
@@ -21,19 +17,26 @@ const songs = [
     {
         name: 'around the world',
         author: 'daft punk',
-        url: atw,
+        url: './public/world.mp3',
         threshold: 0.4
     },
     {
         name: 'song2',
         author: 'ascpixi',
-        url: song2,
+        url: './public/song2.mp3',
         threshold: 0.3
+    },
+    {
+        name: 'LIKE THIS',
+        author: 'atura',
+        url: './public/song3.mp3',
+        threshold: 0.4,
+        activeThresh: 0.6
     },
     {
         name: 'slip',
         author: 'geographer',
-        url: slip,
+        url: './public/slip.mp3',
         threshold: 0.35
     }
 ]
@@ -56,6 +59,12 @@ peaking.Q.value = 1;
 // order matters!!!!
 lowpass.connect(peaking);
 peaking.connect(analyser);
+
+// -- hint --
+const footer = document.getElementById('footer-text')!;
+setTimeout(() => {
+    footer.innerHTML = 'did you know? this site took 15 hours to build!';
+}, 10000);
 
 // -- audio state manager
 let source = audioContext.createBufferSource();
@@ -120,6 +129,14 @@ async function nextSong(increment: number) {
             await loadSource();
             startSource();
             break;
+    }
+
+    if (songIndex == 2) {
+        const oldfooter = footer.innerHTML;
+        footer.innerHTML = "this one is my favorite :3";
+        setTimeout(() => {
+            footer.innerHTML = oldfooter;
+        }, 5000);
     }
 
     lock = false;
@@ -286,7 +303,7 @@ const waveforms = [
         angle: 0,
         color: 0,
         scale: 0,
-        id: mostRecentId
+        id: mostRecentId,
     }
 ]
 
@@ -303,6 +320,7 @@ window.onresize = () => {
     canvas.height = window.innerHeight;
 };
 
+let fastMode = false;
 function draw() {
     ctx.save();
 
@@ -322,12 +340,17 @@ function draw() {
 
     const averageRMS = MAenergyValues.reduce((a, b) => a + b, 0) / MAenergyValues.length;
 
+    if (!fastMode && songs[songIndex].activeThresh && rms > songs[songIndex].activeThresh!) {
+        fastMode = true;
+        setTimeout(() => { fastMode = false }, 1250);
+    }
+
     if (rms > THRESHOLD && waveforms.length < MAX_WAVEFORMS) {
         waveforms.push({
             angle: 0,
-            color: Math.random() * 360,
+            color: fastMode ? c : Math.random() * 360,
             scale: 1,
-            id: ++mostRecentId
+            id: ++mostRecentId,
         });
     }
 
@@ -336,17 +359,18 @@ function draw() {
     for (const waveform of waveforms) {
         ctx.save();
 
+        const speed = 2;
+
         ctx.translate(canvas.width / 2, canvas.height / 2);
 
         ctx.rotate(
-            mostRecentId == waveform.id ?
+            (mostRecentId == waveform.id ?
                 0 :
-                waveform.angle + averageRMS / 2
+                waveform.angle + averageRMS * speed / 4)
         );
 
         const scale = mostRecentId == waveform.id ? 1 : waveform.scale;
-        ctx.scale(scale + averageRMS * 2, scale + averageRMS * 2);
-
+        ctx.scale(scale + averageRMS * speed, scale + averageRMS * speed);
 
         ctx.fillStyle = mostRecentId == waveform.id ?
             `white` :
@@ -364,14 +388,19 @@ function draw() {
 
         ctx.fillText("waveform", 0, 0);
 
-        // if (playerState === 'playing') {
-        waveform.angle += 0.01;
-        waveform.scale += 0.01;
-        waveform.color += 0.05;
-        // }
+        if (active) {
+            waveform.angle += fastMode ? 0.025 : 0.01;
+            waveform.scale += fastMode ? 0.05 : 0.01;
+            waveform.color += fastMode ? 0.1 : 0.05;
+        }
 
-        // remove waveform if it's reached a full loop
+        // remove waveform if it's out of bounds
         if (waveform.scale > OUT_OF_BOUNDS_SCALE) {
+            waveforms.splice(waveforms.indexOf(waveform), 1);
+        }
+
+        if (fastMode && waveform.angle > Math.PI * 4) {
+            console.log("removed waveform in fast mode");
             waveforms.splice(waveforms.indexOf(waveform), 1);
         }
 
