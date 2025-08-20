@@ -69,7 +69,7 @@ setTimeout(() => {
 // -- audio state manager
 let source = audioContext.createBufferSource();
 let sourceState = 'notstarted' as 'notstarted' | 'loading' | 'started' | 'stopped';
-let songIndex = 1;
+let songIndex = 2;
 
 async function loadSource() {
     source = audioContext.createBufferSource();
@@ -129,13 +129,13 @@ async function nextSong(increment: number) {
             break;
     }
 
-    if (songIndex == 2) {
-        const oldfooter = footer.innerHTML;
-        footer.innerHTML = "this one is my favorite :3";
-        setTimeout(() => {
-            footer.innerHTML = oldfooter;
-        }, 5000);
-    }
+    // if (songIndex == 2) {
+    //     const oldfooter = footer.innerHTML;
+    //     footer.innerHTML = "this one is my favorite :3";
+    //     setTimeout(() => {
+    //         footer.innerHTML = oldfooter;
+    //     }, 5000);
+    // }
 
     lock = false;
 }
