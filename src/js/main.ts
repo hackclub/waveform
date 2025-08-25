@@ -281,6 +281,7 @@ document.getElementById('submit')!.onclick = () => {
 const overlay = document.getElementById('overlay')!;
 document.getElementById('show-vis')!.onclick = async () => {
     overlay.style.visibility = 'hidden';
+    info.innerHTML = 'loading...';
     await loadSource();
     await activate();
 };

@@ -31,6 +31,8 @@ const canvas = document.getElementById("visualizer")! as HTMLCanvasElement;
 const ctx = canvas.getContext("2d")!;
 
 function draw() {
+    canvas.width = window.innerWidth < 1000 ? 320 : 640;
+
     ctx.fillStyle = `#001131`;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
