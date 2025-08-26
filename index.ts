@@ -1,5 +1,6 @@
 import index from './src/index.html'
 import tutorial from './src/tutorial.html'
+import submit from './src/submit.html'
 
 Bun.serve({
     port: 3000,
@@ -10,6 +11,7 @@ Bun.serve({
     routes: {
         "/": index,
         "/tutorial": tutorial,
+        '/submit': submit,
         '/health': (req) => {
             return new Response("OK");
         },

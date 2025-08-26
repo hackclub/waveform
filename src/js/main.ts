@@ -255,28 +255,6 @@ document.querySelectorAll('.hoverable').forEach((element) => {
     applyHoverable(element as HTMLElement);
 });
 
-// -- submit --
-let debounce = false;
-document.getElementById('submit')!.onclick = () => {
-    if (debounce) return;
-    debounce = true;
-
-    const tagline = document.getElementById('tagline')!;
-    tagline.innerHTML = 'submission form unlocks<br>at 100 members or aug 23rd';
-
-    tagline.style.transition = 'none';
-    tagline.style.color = 'red';
-
-    setTimeout(() => {
-        tagline.style.transition = 'color 1s';
-        tagline.style.color = 'white';
-        setTimeout(() => {
-            tagline.innerHTML = 'build an audio visualizer<br>get a music subscription';
-        }, 2000);
-        debounce = false;
-    }, 100);
-}
-
 // -- show/hide visuals --
 const overlay = document.getElementById('overlay')!;
 document.getElementById('show-vis')!.onclick = async () => {
@@ -290,6 +268,37 @@ document.getElementById('hide-vis')!.onclick = () => {
     loadSource();
     overlay.style.visibility = 'hidden';
 };
+
+//buttons
+const submit = document.getElementById('submit')!;
+const tutorial = document.getElementById('tutorial')!;
+const slack = document.getElementById('slack')!;
+
+const tagline = document.getElementById('tagline')!;
+
+const normal = () => {
+    submit.classList.remove('hover');
+    tagline.innerHTML = `build an audio visualizer<br>get a music subscription`;
+};
+
+submit.onmouseenter = () => {
+    submit.classList.add('hover');
+    tagline.innerHTML = `see submission requirements<br>and submit your waveform`;
+};
+
+submit.onmouseleave = normal;
+
+tutorial.onmouseenter = () => {
+    tutorial.classList.add('hover');
+    tagline.innerHTML = `learn how to build<br>your own audio visualizer`;
+};
+tutorial.onmouseleave = normal;
+
+slack.onmouseenter = () => {
+    slack.classList.add('hover');
+    tagline.innerHTML = `check out #waveform<br>on the hack club slack`;
+};
+slack.onmouseleave = normal
 
 // -- canvas visualizer --
 const canvas = document.getElementById('waveform') as HTMLCanvasElement;
