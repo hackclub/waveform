@@ -345,7 +345,7 @@ canvas.onclick = async () => {
             ease: "power2.inOut",
         });
 
-        gsap.to('#mute', {
+        gsap.to('#mute, #hide', {
             opacity: 1,
             visibility: 'visible',
 
@@ -386,6 +386,61 @@ muteButton.onclick = () => {
         muteButton.innerHTML = 'unmute';
     }
 }
+
+const hideButton = document.getElementById('hide')!;
+let hidden = false;
+
+hideButton.onclick = () => {
+    if (hidden) {
+        document.querySelectorAll('#gallery, .gallery-img').forEach((element) => {
+            (element as HTMLElement).style.opacity = '0';
+        });
+
+        gsap.to('#content', {
+            opacity: 1,
+            visibility: 'visible',
+            height: 'auto',
+            padding: '16px 0px',
+
+            duration: 1, 
+            ease: "power2.inOut",
+        }).then(() => {
+            gsap.fromTo('#content *, #gallery, .gallery-img', {
+                opacity: 0,
+            }, {
+                opacity: 1,
+
+                duration: 1,
+                ease: "power2.inOut",
+            });
+        });
+        
+        hideButton.innerHTML = 'hide';
+    }
+    else {
+        gsap.to('#content *, .gallery-img', {
+            opacity: 0,
+            
+            duration: 1,
+            ease: "power2.inOut",
+        }).then(() => {
+            gsap.to('#content', {
+                height: '0px',
+                padding: '0px',
+                
+                duration: 1,
+                ease: "power2.inOut",
+            }).then(() => {
+                document.getElementById('content')!.style.visibility = 'hidden';
+            });
+        });
+
+        hideButton.innerHTML = 'show';
+    }
+    
+    hidden = !hidden;
+};
+
 
 // const reset = (button: HTMLElement) => {
 //     return () => {
