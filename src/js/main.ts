@@ -60,12 +60,6 @@ peaking.Q.value = 1;
 lowpass.connect(peaking);
 peaking.connect(analyser);
 
-// -- hint --
-const footer = document.getElementById('footer-text')!;
-setTimeout(() => {
-    footer.innerHTML = 'did you know? this site took 15 hours to build!';
-}, 10000);
-
 // -- audio state manager
 let source = audioContext.createBufferSource();
 let sourceState = 'notstarted' as 'notstarted' | 'loading' | 'started' | 'stopped';
@@ -140,169 +134,31 @@ async function nextSong(increment: number) {
     lock = false;
 }
 
-// --- controls ---
-const controller = document.getElementById('controller') as HTMLElement;
-const prev = document.getElementById('prev') as HTMLElement;
-const next = document.getElementById('next') as HTMLElement;
-
-const infoHover = document.getElementById('info-hover-box') as HTMLElement;
-const info = document.getElementById('info') as HTMLElement;
-let infoText = info.innerHTML;
-let infoTextHover = '';
-const refresh = () => { info.innerHTML = infoText; };
-const updateText = (text: string, hoverText = '') => {
-    infoText = text;
-    infoTextHover = hoverText;
-    refresh();
-};
-let active = false;
-
-let enterDebounce = false;
-infoHover.onmouseenter = () => {
-    if (enterDebounce) return;
-    enterDebounce = true;
-
-    if (infoTextHover) {
-        info.innerHTML = infoTextHover;
+let muted = false;
+function mute() {
+    muted = true;
+    // disconnect analyser from destination
+    if (source.disconnect) {
+        source.disconnect(audioContext.destination);
     }
+}
 
-    if (!active) {
-        info.classList.add('hover');
-    }
+function unmute() {
+    muted = false;
+    // reconnect analyser to destination
+    source.connect(audioContext.destination);
+}
 
-    setTimeout(() => {
-        enterDebounce = false;
-    }, 100);
-};
 
-let leaveDebounce = false;
-infoHover.onmouseleave = () => {
-    if (leaveDebounce) return;
-    leaveDebounce = true;
-
-    info.innerHTML = infoText;
-
-    if (!active) {
-        info.classList.remove('hover');
-        info.style.color = `white`;
-    }
-
-    setTimeout(() => {
-        leaveDebounce = false;
-    }, 100);
-};
-
-// prev/next controls
-const hideControls = () => {
-    document.querySelectorAll('.control').forEach((element) => {
-        (element as HTMLElement).style.visibility = 'hidden';
-    });
-};
-
-const showControls = () => {
-    document.querySelectorAll('.control').forEach((element) => {
-        (element as HTMLElement).style.visibility = 'visible';
-    });
-};
-
-hideControls();
-
-// functionality
-
-next.onclick = async () => {
-    updateText(`loading...`);
-    await nextSong(1);
-    updateText(`playing <i>${songs[songIndex].name}</i><br>by ${songs[songIndex].author}`, `pause?`);
-};
-
-prev.onclick = async () => {
-    updateText(`loading...`);
-    await nextSong(-1);
-    updateText(`playing <i>${songs[songIndex].name}</i><br>by ${songs[songIndex].author}`, `pause?`);
-};
-
-const activate = async () => {
-    if (!active) {
-        updateText(`loading...`);
-
-        await playSong();
-        showControls();
-        active = true;
-
-        updateText(`playing <i>${songs[songIndex].name}</i><br>by ${songs[songIndex].author}`, `pause?`);
-    } else {
-        active = false;
-        info.style.color = 'white';
-        await pauseSong();
-        hideControls();
-        updateText(`resume visualizer<br>(music & rapid visuals)`);
-    }
-};
-info.onclick = activate;
-
-// -- color hover effect
-const applyHoverable = (element: HTMLElement) => {
-    element.onmouseover = () => {
-        element.classList.add('hover');
-    };
-    element.onmouseout = () => {
-        element.classList.remove('hover');
-        element.style.color = `white`;
-    };
-};
-
-document.querySelectorAll('.hoverable').forEach((element) => {
-    applyHoverable(element as HTMLElement);
-});
-
-// -- show/hide visuals --
-const overlay = document.getElementById('overlay')!;
-document.getElementById('show-vis')!.onclick = async () => {
-    overlay.style.visibility = 'hidden';
-    info.innerHTML = 'loading...';
-    await loadSource();
-    await activate();
-};
-
-document.getElementById('hide-vis')!.onclick = () => {
-    loadSource();
-    overlay.style.visibility = 'hidden';
-};
-
-//buttons
-const submit = document.getElementById('submit')!;
-const tutorial = document.getElementById('tutorial')!;
-const slack = document.getElementById('slack')!;
-
-const tagline = document.getElementById('tagline')!;
-
-const normal = () => {
-    submit.classList.remove('hover');
-    tagline.innerHTML = `build an audio visualizer<br>get a music subscription`;
-};
-
-submit.onmouseenter = () => {
-    submit.classList.add('hover');
-    tagline.innerHTML = `see submission requirements<br>and submit your waveform`;
-};
-
-submit.onmouseleave = normal;
-
-tutorial.onmouseenter = () => {
-    tutorial.classList.add('hover');
-    tagline.innerHTML = `learn how to build<br>your own audio visualizer`;
-};
-tutorial.onmouseleave = normal;
-
-slack.onmouseenter = () => {
-    slack.classList.add('hover');
-    tagline.innerHTML = `check out #waveform<br>on the hack club slack`;
-};
-slack.onmouseleave = normal
 
 // -- canvas visualizer --
+import { gsap } from "gsap";
+
+const startNow = document.getElementById('start')!;
+
 const canvas = document.getElementById('waveform') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
+let active = false;
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
@@ -312,7 +168,7 @@ const waveforms = [
     {
         angle: 0,
         color: 0,
-        scale: 0,
+        scale: 1,
         id: mostRecentId,
     }
 ]
@@ -399,7 +255,7 @@ function draw() {
         ctx.fillText("waveform", 0, 0);
 
         if (active) {
-            waveform.angle += fastMode ? 0.025 : 0.01;
+            waveform.angle += fastMode ? 0.04 : 0.02;
             waveform.scale += fastMode ? 0.05 : 0.01;
             waveform.color += fastMode ? 0.1 : 0.05;
         }
@@ -418,27 +274,150 @@ function draw() {
     }
 
     c++;
-    document.querySelectorAll('.hover').forEach((element) => {
-        (element as HTMLElement).style.color = `hsl(${c}, 70%, 70%)`;
+    document.querySelectorAll('.rainbow').forEach((element, key) => {
+        (element as HTMLElement).style.color = `hsl(${c * 4 + key * 100}, 70%, 70%)`;
     });
-    document.querySelectorAll('.menu-item').forEach((element) => {
-        (element as HTMLElement).style.borderColor = `hsl(${c}, 70%, 70%)`;
+    document.querySelectorAll('.rainbowbg').forEach((element, key) => {
+        (element as HTMLElement).style.background = `hsl(${c * 6 + key * 100}, 70%, 70%)`;
     });
-
-    if (active) {
-        controller.style.backgroundColor = `hsl(${c}, 70%, 70%)`;
-        info.style.color = 'black';
-    } else {
-        controller.style.backgroundColor = `black`;
-    }
 
     requestAnimationFrame(draw);
 }
 
 draw();
 
-// prevent FOUC
+canvas.style.cursor = 'pointer';
 
+loadSource().then(() => {
+    const overlay = document.getElementById('overlay')!;
+    overlay.style.display = 'none';
+});
+
+const footer = document.getElementById('footer')!;
+let defaultFooter = footer.innerHTML;
+
+canvas.onclick = async () => {
+    if (active) return;
+    canvas.style.cursor = 'default';
+
+    gsap.to('#overlay2', {
+        opacity: 0,
+        display: 'none',
+        duration: 0.5,
+        ease: "power2.inOut",
+    });
+
+    for (let i = 0; i < 6; i++) {
+        waveforms.push({
+            angle: 0,
+            color: Math.random() * 360,
+            scale: 1 + i * 0.1,
+            id: ++mostRecentId,
+        });
+
+        gsap.to(waveforms[i - 1], {
+            scale: 2,
+            angle: Math.PI * i / 3,
+
+            duration: 1,
+            ease: "power2.inOut",
+        });
+    }
+
+    setTimeout(async () => {
+        await startSource();
+        active = true;
+    }, 100);
+
+    gsap.to('#content', {
+        opacity: 1,
+        visibility: 'visible',
+        height: 'auto',
+
+        delay: 1,
+        duration: 1,
+        ease: "power2.inOut",
+    }).then(() => {
+        gsap.to('#content :not(#gallery .gallery-img)', {
+            opacity: 1,
+
+            duration: 1,
+            ease: "power2.inOut",
+        });
+
+        gsap.to('#mute', {
+            opacity: 1,
+            visibility: 'visible',
+
+            duration: 1,
+            ease: "power2.inOut",
+        });
+
+        gsap.to('#gallery', {
+            display: 'flex',
+            height: '100px',
+            opacity: 1,
+
+            delay: 10,
+            duration: 1,
+            ease: "power2.inOut",
+        }).then(() => {
+            defaultFooter = 'check out these sick visualizers made by hackclubbers like you!';
+            footer.innerHTML = defaultFooter;
+
+            gsap.to('.gallery-img', {
+                opacity: 1,
+                duration: 1,
+                ease: "power2.inOut",
+            });
+        });
+    });
+};
+
+const muteButton = document.getElementById('mute')!;
+
+muteButton.onclick = () => {
+    if (muted) {
+        unmute();
+        muteButton.innerHTML = 'mute';
+    }
+    else {
+        mute();
+        muteButton.innerHTML = 'unmute';
+    }
+}
+
+// const reset = (button: HTMLElement) => {
+//     return () => {
+//         footer.innerHTML = defaultFooter;
+//         button.classList.remove('rainbowbg');
+//         button.style.background = 'black';
+//     }
+// };
+
+// const signup = document.getElementById('signup')!;
+// signup.onmouseenter = (button) => {
+//     signup.classList.add('rainbowbg');
+//     footer.innerHTML = "join the #waveform slack channel."
+// };
+
+// const tutorial = document.getElementById('tutorial')!;
+// tutorial.onmouseenter = () => {
+//     tutorial.classList.add('rainbowbg');
+//     footer.innerHTML = "want to build a visualizer? here's a quick tutorial for ya";
+// };
+
+// const submit = document.getElementById('submit')!;
+// submit.onmouseenter = async () => {
+//     submit.classList.add('rainbowbg');
+//     footer.innerHTML = "ready to submit? i can't wait ^.^";
+// };
+
+// signup.onmouseleave = reset(signup);
+// tutorial.onmouseleave = reset(tutorial);
+// submit.onmouseleave = reset(submit);
+
+// prevent FOUC
 window.onload = () => {
     document.body.style.visibility = 'visible';
 };

@@ -6,12 +6,18 @@ Bun.serve({
     port: 3000,
     hostname: '0.0.0.0',
 
-    development: false,
+    development: process.env.PRODUCTION !== 'true',
 
     routes: {
         "/": index,
         "/tutorial": tutorial,
-        '/submit': submit,
+        '/submit': (req) => {
+            if (req.method === 'GET') {
+                return Response.redirect('https://forms.hackclub.com/t/qcnZQpvVb9us', 302);
+            } else {
+                return new Response("Method not allowed", { status: 405 }); 
+            }
+        },
         '/health': (req) => {
             return new Response("OK");
         },
