@@ -106,9 +106,16 @@ a, h3 {
     color: #C0C0C0;
 }
 
-li, ul, a, p, h3 {
+li, ul, a, p, h3, h5 {
     font-family: 'Space Mono', monospace;
     letter-spacing: 1px;
+}
+
+h5 {
+    color: rgb(116, 116, 116);
+    font-size: smaller;
+    margin-top: 2px;
+    font-weight: normal;
 }
 
 .gap {
