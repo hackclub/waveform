@@ -6,7 +6,7 @@
     {
       "source": "/submit",
       "destination": "https://forms.hackclub.com/t/qcnZQpvVb9us",
-      "statusCode": 302
+      "statusCode": 308
     }
   ]
 }
