@@ -1,3 +1,12 @@
 {
-  "outputDirectory": "src"
+  "buildCommand": "bun run build",
+  "outputDirectory": "public",
+  "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/submit",
+      "destination": "https://forms.hackclub.com/t/qcnZQpvVb9us",
+      "statusCode": 302
+    }
+  ]
 }

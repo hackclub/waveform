@@ -8,7 +8,7 @@
   },
   "private": true,
   "scripts": {
-    "build": "tsc --build",
+    "build": "bun run build.ts",
     "serve": "bun index.ts"
   },
   "type": "module",
